@@ -1,0 +1,27 @@
+{
+  "name": "barber-booking-browser-backend",
+  "version": "1.0.0",
+  "description": "A backend that trims data, not hair.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/esztermazi/Barber-Booking-Browser-Backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/esztermazi/Barber-Booking-Browser-Backend/issues"
+  },
+  "homepage": "https://github.com/esztermazi/Barber-Booking-Browser-Backend#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
