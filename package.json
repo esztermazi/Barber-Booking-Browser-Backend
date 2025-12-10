@@ -20,7 +20,8 @@
   "homepage": "https://github.com/esztermazi/Barber-Booking-Browser-Backend#readme",
   "dependencies": {
     "dotenv": "^17.2.3",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
