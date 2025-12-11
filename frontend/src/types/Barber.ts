@@ -33,3 +33,8 @@ export interface Barber {
     };
   };
 }
+
+export interface BarberSlot {
+  start: number;
+  end: number;
+}
