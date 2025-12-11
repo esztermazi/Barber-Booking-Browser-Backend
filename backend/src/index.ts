@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import "tsx/esm";
 import express from "express";
 // import { auth } from "./middleware/auth.ts";
