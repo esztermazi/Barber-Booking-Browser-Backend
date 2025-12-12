@@ -1,8 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { ColumnDef } from "@tanstack/react-table";
+import { Booking } from "@/types/Booking";
+import { Button } from "@/components/ui/button";
+import { useState, useCallback, useMemo } from "react";
 import { getBookings, deleteBooking } from "@/lib/api/bookings";
-import type { Booking } from "@/types/Booking";
+
+import { Input } from "@/components/ui/input";
+import { DataTable } from "@/components/ui/data-table";
+import { ScissorsLineDashed, Trash } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+export const appointmentColumns = (
+  openDeleteDialog: (id: string) => void,
+  deletingId: string | null
+): ColumnDef<Booking>[] => [
+  {
+    accessorKey: "barber",
+    header: "Barber",
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+  },
+  {
+    accessorKey: "start",
+    header: "Start",
+    cell: ({ row }) => new Date(row.original.start).toLocaleString(),
+  },
+  {
+    accessorKey: "end",
+    header: "End",
+    cell: ({ row }) => new Date(row.original.end).toLocaleString(),
+  },
+  {
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => {
+      const booking = row.original;
+
+      return (
+        <Button
+          variant="destructive"
+          onClick={() => openDeleteDialog(booking.id)}
+          disabled={deletingId === booking.id}
+          className="h-8"
+        >
+          <Trash />
+        </Button>
+      );
+    },
+  },
+];
 
 export default function AppointmentsPage() {
   const [email, setEmail] = useState("");
@@ -10,6 +68,17 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const openDeleteDialog = useCallback((id: string) => {
+    setPendingDeleteId(id);
+  }, []);
+
+  const columns = useMemo(
+    () => appointmentColumns(openDeleteDialog, deletingId),
+    [openDeleteDialog, deletingId]
+  );
 
   async function handleSearch() {
     if (!email.trim()) {
@@ -17,6 +86,7 @@ export default function AppointmentsPage() {
       return;
     }
 
+    setHasSearched(true);
     setLoading(true);
     setError("");
 
@@ -30,84 +100,91 @@ export default function AppointmentsPage() {
     setLoading(false);
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Are you sure you want to delete this appointment?")) {
-      return;
-    }
+  async function handleDeleteConfirmed() {
+    if (!pendingDeleteId) return;
 
-    setDeletingId(id);
+    setDeletingId(pendingDeleteId);
     setError("");
 
     try {
-      const success = await deleteBooking(id);
-
+      const success = await deleteBooking(pendingDeleteId);
       if (!success) {
         setError("Could not delete booking.");
+        setDeletingId(null);
+        setPendingDeleteId(null);
         return;
       }
 
-      const updated = await getBookings(email);
-      setBookings(updated);
+      setBookings((prev) =>
+        prev.filter((booking) => booking.id !== pendingDeleteId)
+      );
     } catch (err) {
       setError("Failed to delete booking: " + err);
     }
 
     setDeletingId(null);
+    setPendingDeleteId(null);
   }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Appointments</h1>
+      <div className="max-w-3xl mx-auto text-center">
+        <div className="flex items-center justify-center gap-2">
+          <h1 className="text-3xl font-[Snell_Roundhand,Segoe_Script,'Brush_Script_MT',cursive] mb-4">
+            Cut to the right moment(s)
+          </h1>
+        </div>
 
-      <div className="flex gap-2 mb-4">
-        <input
-          type="email"
-          placeholder="Enter your email…"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="border px-3 py-2 rounded"
-        />
-        <button
-          onClick={handleSearch}
-          className="px-4 py-2 bg-black text-white rounded"
-        >
-          Search
-        </button>
+        <div className="flex gap-2 mb-4 justify-center">
+          <Input
+            type="email"
+            placeholder="Enter your email…"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="max-w-xs"
+          />
+
+          <Button onClick={handleSearch} disabled={loading}>
+            {loading ? "Searching…" : "Search"}
+            <ScissorsLineDashed />
+          </Button>
+        </div>
+
+        {error && <p className="text-red-600">{error}</p>}
+        {loading && <p>Loading...</p>}
       </div>
 
-      {error && <p className="text-red-600">{error}</p>}
-      {loading && <p>Loading...</p>}
+      <div className="mt-6 w-full">
+        {bookings.length > 0 && <DataTable columns={columns} data={bookings} />}
 
-      <ul className="mt-4 space-y-2">
-        {bookings.map((b) => (
-          <li key={b.id} className="border p-3 rounded flex justify-between">
-            <div>
-              <p>
-                <strong>Barber:</strong> {b.barberId}
-              </p>
-              <p>
-                <strong>Email:</strong> {b.email}
-              </p>
-              <p>
-                <strong>Start:</strong> {new Date(b.start).toLocaleString()}
-              </p>
-              <p>
-                <strong>End:</strong> {new Date(b.end).toLocaleString()}
-              </p>
-            </div>
+        {hasSearched && bookings.length === 0 && !loading && (
+          <p className="text-center mt-4">No appointments found.</p>
+        )}
+      </div>
 
-            <button
-              onClick={() => handleDelete(b.id)}
-              disabled={deletingId === b.id}
-              className="text-white bg-red-600 px-3 py-1 rounded h-10 self-center"
-            >
-              {deletingId === b.id ? "Deleting..." : "Delete"}
-            </button>
-          </li>
-        ))}
-      </ul>
+      <AlertDialog
+        open={!!pendingDeleteId}
+        onOpenChange={() => setPendingDeleteId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete appointment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
-      {bookings.length === 0 && !loading && <p>No appointments found.</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingDeleteId(null)}>
+              Cancel
+            </AlertDialogCancel>
+
+            <AlertDialogAction onClick={handleDeleteConfirmed}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

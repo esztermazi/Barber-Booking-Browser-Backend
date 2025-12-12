@@ -10,4 +10,7 @@ export namespace BookingDTO {
   export type Get = Pick<Booking, "email">;
   export type Create = Omit<Booking, "id">;
   export type Delete = Pick<Booking, "id">;
+  export type List = Omit<Booking, "barberId"> & {
+    barber: string;
+  };
 }

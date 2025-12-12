@@ -15,16 +15,26 @@ import {
 } from "../utils/constants.ts";
 
 import type { Booking, BookingDTO } from "../models/Booking.ts";
+import { BarbersService } from "./barbers.service.ts";
 
 export class BookingsService {
-  static getAll(email?: string): Booking[] {
+  static async getAll(email?: string): Promise<BookingDTO.List[]> {
     const bookings = readJSON<Booking[]>(BOOKINGS_PATH);
 
+    const barbers = await BarbersService.fetchAll();
+
+    const barberMap = new Map(barbers.map((b) => [b.id, b.name]));
+
+    const result = bookings.map((b) => ({
+      ...b,
+      barber: barberMap.get(b.barberId) ?? "Unknown barber",
+    }));
+
     if (email) {
-      return bookings.filter((b: Booking) => b.email === email);
+      return result.filter((b) => b.email === email);
     }
 
-    return bookings;
+    return result;
   }
 
   static create(data: BookingDTO.Create): Booking {
@@ -67,8 +77,8 @@ export class BookingsService {
       email,
     };
 
-    bookings.push(newBooking);
-    writeJSON(BOOKINGS_PATH, bookings);
+    const updated = [...bookings, newBooking];
+    writeJSON(BOOKINGS_PATH, updated);
 
     return newBooking;
   }

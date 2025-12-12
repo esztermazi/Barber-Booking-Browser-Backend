@@ -3,11 +3,11 @@ import { BookingsService } from "../services/bookings.service.ts";
 import type { Booking, BookingDTO } from "../models/Booking.ts";
 
 export class BookingsController {
-  static getAll(
-    req: Request<{}, Booking[], {}, { email?: string }>,
-    res: Response<Booking[]>
+  static async getAll(
+    req: Request<{}, {}, {}, { email?: string }>,
+    res: Response<BookingDTO.List[]>
   ) {
-    const bookings = BookingsService.getAll(req.query.email);
+    const bookings = await BookingsService.getAll(req.query.email);
     return res.json(bookings);
   }
 
