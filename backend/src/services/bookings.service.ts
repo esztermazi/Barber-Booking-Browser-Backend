@@ -23,15 +23,17 @@ export class BookingsService {
 
     const barbers = await BarbersService.fetchAll();
 
-    const barberMap = new Map(barbers.map((b) => [b.id, b.name]));
+    const barberMap = new Map(
+      barbers.map((barber) => [barber.id, barber.name])
+    );
 
-    const result = bookings.map((b) => ({
-      ...b,
-      barber: barberMap.get(b.barberId) ?? "Unknown barber",
+    const result = bookings.map((booking) => ({
+      ...booking,
+      barber: barberMap.get(booking.barberId) ?? "Unknown barber",
     }));
 
     if (email) {
-      return result.filter((b) => b.email === email);
+      return result.filter((booking) => booking.email === email);
     }
 
     return result;
@@ -60,9 +62,9 @@ export class BookingsService {
 
     const bookings = readJSON<Booking[]>(BOOKINGS_PATH);
 
-    const conflict = bookings.some((b: Booking) => {
-      if (b.barberId !== barberId) return false;
-      return start < b.end && end > b.start;
+    const conflict = bookings.some((booking) => {
+      if (booking.barberId !== barberId) return false;
+      return start < booking.end && end > booking.start;
     });
 
     if (conflict) {
@@ -85,11 +87,11 @@ export class BookingsService {
 
   static delete(id: string): boolean {
     const bookings = readJSON<Booking[]>(BOOKINGS_PATH);
-    const exists = bookings.some((b: Booking) => b.id === id);
+    const exists = bookings.some((booking) => booking.id === id);
 
     if (!exists) return false;
 
-    const updated = bookings.filter((b: Booking) => b.id !== id);
+    const updated = bookings.filter((booking) => booking.id !== id);
     writeJSON(BOOKINGS_PATH, updated);
 
     return true;

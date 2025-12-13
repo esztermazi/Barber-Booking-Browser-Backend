@@ -16,3 +16,13 @@ export const HOLIDAYS = [
   "12-25",
   "12-26",
 ];
+
+export const weekdays = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+];

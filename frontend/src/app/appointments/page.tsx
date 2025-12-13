@@ -130,7 +130,7 @@ export default function AppointmentsPage() {
     <div className="p-6">
       <div className="max-w-3xl mx-auto text-center">
         <div className="flex items-center justify-center gap-2">
-          <h1 className="text-3xl font-[Snell_Roundhand,Segoe_Script,'Brush_Script_MT',cursive] mb-4">
+          <h1 className="text-4xl font-[Snell_Roundhand,Segoe_Script,'Brush_Script_MT',cursive] mb-4">
             Cut to the right moment(s)
           </h1>
         </div>

@@ -8,8 +8,12 @@ export function generateTimeSlots(
 ): BarberSlotDTO[] {
   const slots: BarberSlotDTO[] = [];
 
-  const startTs = new Date(`${date}T${openTime}:00`).getTime();
-  const endTs = new Date(`${date}T${closeTime}:00`).getTime();
+  const [year, month, day] = date.split("-").map(Number);
+  const [openH, openM] = openTime.split(":").map(Number);
+  const [closeH, closeM] = closeTime.split(":").map(Number);
+
+  const startTs = new Date(year, month - 1, day, openH, openM).getTime();
+  const endTs = new Date(year, month - 1, day, closeH, closeM).getTime();
   const step = stepMinutes * 60 * 1000;
 
   for (let ts = startTs; ts < endTs; ts += step) {
@@ -22,5 +26,10 @@ export function generateTimeSlots(
   return slots;
 }
 
-export const toTimeString = (h: number): string =>
-  `${String(h).padStart(2, "0")}:00`;
+export function tsToYMD(ts: number) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(d.getDate()).padStart(2, "0")}`;
+}

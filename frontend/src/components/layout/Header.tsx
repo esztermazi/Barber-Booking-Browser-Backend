@@ -45,17 +45,30 @@ export function Header() {
       </nav>
 
       <div
-        className={`md:hidden bg-black/40 backdrop-blur-md border-b border-white/10 text-white px-6 py-4 flex flex-col gap-4 text-lg transition-all duration-300 ${
+        className={`md:hidden bg-black/40 backdrop-blur-md border-b border-white/10 text-white px-6 py-4 flex flex-col gap-2 text-lg transition-all duration-300 ${
           open ? "max-h-60 opacity-100" : "max-h-0 opacity-0 overflow-hidden"
         }`}
       >
-        <Link href="/barbers" onClick={() => setOpen(false)}>
+        <Link
+          href="/barbers"
+          onClick={() => setOpen(false)}
+          className="px-3 py-2 rounded-md hover:bg-white/10 transition"
+        >
           Barbers
         </Link>
-        <Link href="/appointments" onClick={() => setOpen(false)}>
+        <Link
+          href="/appointments"
+          onClick={() => setOpen(false)}
+          className="px-3 py-2 rounded-md hover:bg-white/10 transition"
+        >
           Appointments
         </Link>
-        <Link href="/book" onClick={() => setOpen(false)}>
+
+        <Link
+          href="/book"
+          onClick={() => setOpen(false)}
+          className="px-3 py-2 rounded-md hover:bg-white/10 transition"
+        >
           Schedule
         </Link>
       </div>

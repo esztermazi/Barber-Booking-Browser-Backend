@@ -3,12 +3,13 @@ import type { Barber, BarberSlotDTO } from "../models/Barber.ts";
 import type { Booking } from "../models/Booking.ts";
 
 import {
-  OPENING_HOUR,
-  CLOSING_HOUR,
   BOOKINGS_PATH,
+  CLOSED_DAYS,
+  weekdays,
+  HOLIDAYS,
 } from "../utils/constants.ts";
 
-import { toTimeString, generateTimeSlots } from "../utils/helper.ts";
+import { generateTimeSlots, tsToYMD } from "../utils/helper.ts";
 import { readJSON } from "../utils/storage.ts";
 import { isValidDateOnly } from "../utils/validation.ts";
 
@@ -29,37 +30,58 @@ export class BarbersService {
       throw new Error("Failed to fetch barbers");
     }
   }
-
-  static computeSlots(barberId: string, date: string): BarberSlotDTO[] {
+  static async computeSlots(
+    barberId: string,
+    date: string
+  ): Promise<BarberSlotDTO[]> {
     if (!isValidDateOnly(date)) {
-      throw new Error(
-        "Invalid date format. Expected YYYY-MM-DD (e.g., 2025-12-13)"
-      );
+      throw new Error("Invalid date format. Expected YYYY-MM-DD");
     }
 
-    const allSlots = generateTimeSlots(
-      date,
-      toTimeString(OPENING_HOUR),
-      toTimeString(CLOSING_HOUR)
-    );
+    const barbers = await BarbersService.fetchAll();
+    const barber = barbers.find((barber) => barber.id === barberId);
+    if (!barber) throw new Error("Barber not found");
+
+    const [y, m, d] = date.split("-").map(Number);
+    const dayIndex = new Date(y, m - 1, d).getDay();
+
+    const dayName = weekdays[dayIndex] as keyof Barber["workSchedule"];
+    const schedule = barber.workSchedule[dayName];
+
+    if (!schedule || !schedule.start || !schedule.end) return [];
+    if (CLOSED_DAYS.includes(dayIndex)) return [];
+
+    const monthDay = `${String(m).padStart(2, "0")}-${String(d).padStart(
+      2,
+      "0"
+    )}`;
+    if (HOLIDAYS.includes(monthDay)) return [];
+
+    const allSlots = generateTimeSlots(date, schedule.start, schedule.end);
+
+    const now = Date.now();
+    const today = tsToYMD(now);
+    const validSlots =
+      date === today ? allSlots.filter((slot) => slot.end > now) : allSlots;
 
     const bookings = readJSON<Booking[]>(BOOKINGS_PATH);
 
-    const bookedSlots: BarberSlotDTO[] = bookings
+    const bookedSlots = bookings
       .filter(
-        (b: Booking) =>
-          b.barberId === barberId &&
-          new Date(Number(b.start)).toISOString().slice(0, 10) === date
+        (booking) =>
+          booking.barberId === barberId &&
+          tsToYMD(Number(booking.start)) === date
       )
-      .map((b: Booking) => ({
-        start: Number(b.start),
-        end: Number(b.end),
+      .map((bookedSlot) => ({
+        start: Number(bookedSlot.start),
+        end: Number(bookedSlot.end),
       }));
 
-    return allSlots.filter(
-      (slot: BarberSlotDTO) =>
+    return validSlots.filter(
+      (slot) =>
         !bookedSlots.some(
-          (b: BarberSlotDTO) => slot.start < b.end && slot.end > b.start
+          (bookedSlot) =>
+            slot.start < bookedSlot.end && slot.end > bookedSlot.start
         )
     );
   }

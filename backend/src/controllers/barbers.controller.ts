@@ -15,7 +15,7 @@ export class BarbersController {
     }
   }
 
-  static getSlots(
+  static async getSlots(
     req: Request<{ id: string }, any, any, { date?: string }>,
     res: Response<BarberSlotDTO[] | { error: string }>
   ) {
@@ -27,7 +27,7 @@ export class BarbersController {
     }
 
     try {
-      const result = BarbersService.computeSlots(barberId, date);
+      const result = await BarbersService.computeSlots(barberId, date);
       return res.json(result);
     } catch (err) {
       return res.status(400).json({ error: (err as Error).message });

@@ -52,7 +52,7 @@ export function isFutureTimestamp(ts: number): boolean {
 export function isWithinOpeningHours(dateStr: number): boolean {
   const date = new Date(dateStr);
   const hours = date.getHours();
-  return hours >= OPENING_HOUR && hours < CLOSING_HOUR;
+  return hours >= OPENING_HOUR && hours <= CLOSING_HOUR;
 }
 
 export function isSunday(ts: number): boolean {

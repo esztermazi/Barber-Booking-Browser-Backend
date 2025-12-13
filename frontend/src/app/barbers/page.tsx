@@ -1,5 +1,4 @@
 import { getBarbers } from "@/lib/api/barbers";
-import type { Barber } from "@/types/Barber";
 import { BarberHero } from "@/components/sections/BarberHero";
 import { BarberSchedule } from "@/components/sections/BarberSchedule";
 
@@ -17,7 +16,7 @@ export default async function BarbersPage() {
         id="barbers-schedule"
         className="max-w-4xl mx-auto px-4 space-y-8 pb-20"
       >
-        {barbers.map((barber: Barber) => (
+        {barbers.map((barber) => (
           <BarberSchedule barber={barber} key={barber.id} />
         ))}
       </section>

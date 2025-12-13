@@ -1,15 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getAvailableSlots, getBarbers } from "@/lib/api/barbers";
 import { createBooking } from "@/lib/api/bookings";
 import type { Barber } from "@/types/Barber";
 import type { BarberSlot } from "@/types/Barber";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toLocalYMD } from "@/lib/utils";
+
 export default function BookPage() {
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [barberId, setBarberId] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState<Date | undefined>(undefined);
   const [slots, setSlots] = useState<BarberSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<BarberSlot | null>(null);
   const [email, setEmail] = useState("");
@@ -20,31 +34,43 @@ export default function BookPage() {
 
   useEffect(() => {
     async function load() {
-      const data = await getBarbers();
-      setBarbers(data);
+      try {
+        const data = await getBarbers();
+        setBarbers(data);
+      } catch {
+        setError("Failed to load barbers");
+      }
     }
     load();
   }, []);
 
-  async function loadSlots() {
-    if (!barberId || !date) return;
+  const loadSlots = useCallback(
+    async (dateStr?: string, barber?: string) => {
+      const bookingDate =
+        dateStr ?? (date instanceof Date ? toLocalYMD(date) : undefined);
+      const bookingBarber = barber ?? barberId;
 
-    setLoadingSlots(true);
-    setError("");
-    setSlots([]);
+      if (!bookingDate || !bookingBarber) return;
 
-    try {
-      const data = await getAvailableSlots(barberId, date);
-      setSlots(data);
-    } catch {
-      setError("Failed to load slots");
-    }
+      setLoadingSlots(true);
+      setError("");
+      setSuccess("");
+      setSlots([]);
 
-    setLoadingSlots(false);
-  }
+      try {
+        const data = await getAvailableSlots(bookingBarber, bookingDate);
+        setSlots(data);
+      } catch {
+        setError("Failed to load slots");
+      } finally {
+        setLoadingSlots(false);
+      }
+    },
+    [date, barberId]
+  );
 
   async function handleBooking() {
-    if (!selectedSlot || !email || !barberId) {
+    if (!selectedSlot || !email || !barberId || !date) {
       setError("Please select barber, date, slot, and enter email.");
       return;
     }
@@ -59,6 +85,11 @@ export default function BookPage() {
 
       setSuccess("Appointment successfully booked!");
       setError("");
+      setEmail("");
+      setSelectedSlot(null);
+      setSlots([]);
+      setDate(undefined);
+      setBarberId("");
     } catch {
       setError("Failed to create booking");
     }
@@ -66,93 +97,121 @@ export default function BookPage() {
 
   return (
     <div className="max-w-xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Book an Appointment</h1>
+      <h1 className="text-4xl font-[Snell_Roundhand,Segoe_Script,'Brush_Script_MT',cursive] mb-6 text-center">
+        Time for a Trim
+      </h1>
 
-      <label className="block mb-2 font-medium">Choose a Barber</label>
-      <select
-        value={barberId}
-        onChange={(e) => setBarberId(e.target.value)}
-        className="border px-3 py-2 rounded w-full mb-6"
-      >
-        <option value="">Select barber…</option>
-        {barbers.map((b) => (
-          <option key={b.id} value={b.id}>
-            {b.name}
-          </option>
-        ))}
-      </select>
+      <div className="text-center">
+        <Label htmlFor="barber" className="block mb-2 font-medium">
+          Choose a Barber
+        </Label>
 
-      <label className="block mb-2 font-medium">Choose a Date</label>
-      <input
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        className="border px-3 py-2 rounded w-full mb-6"
-      />
+        <div className="flex justify-center">
+          <Select
+            value={barberId}
+            onValueChange={(id) => {
+              setBarberId(id);
+              setSelectedSlot(null);
+              setSuccess("");
+              setError("");
 
-      <button
-        onClick={loadSlots}
-        disabled={!barberId || !date}
-        className="px-4 py-2 bg-black text-white rounded disabled:bg-gray-400"
-      >
-        Load Available Slots
-      </button>
+              if (date) {
+                loadSlots(toLocalYMD(date), id);
+              }
+            }}
+          >
+            <SelectTrigger className="w-64 mb-6">
+              <SelectValue placeholder="Select barber…" />
+            </SelectTrigger>
 
-      {loadingSlots && <p className="mt-4">Loading slots…</p>}
-      {error && <p className="text-red-600 mt-4">{error}</p>}
+            <SelectContent>
+              {barbers.map((barber) => (
+                <SelectItem key={barber.id} value={barber.id}>
+                  {barber.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="text-center">
+        <Label className="block mb-2 font-medium">Choose a Date</Label>
+
+        <div className="flex justify-center">
+          <Calendar
+            mode="single"
+            selected={date}
+            disabled={{ before: new Date() }}
+            onSelect={(day) => {
+              if (!day) return;
+              setDate(day);
+              setSelectedSlot(null);
+              setSuccess("");
+              setError("");
+              if (barberId) {
+                loadSlots(toLocalYMD(day), barberId);
+              }
+            }}
+            className="mb-6"
+          />
+        </div>
+      </div>
+
+      {loadingSlots && <p className="mt-4 text-center">Loading slots…</p>}
+      {error && <p className="text-red-600 mt-4 text-center">{error}</p>}
 
       {slots.length > 0 && (
         <div className="mt-6">
-          <h2 className="font-semibold mb-2">Available Time Slots</h2>
+          <h2 className="font-semibold mb-2 text-center">
+            Available Time Slots
+          </h2>
 
-          <ul className="space-y-2">
-            {slots.map((slot) => (
-              <li key={slot.start}>
-                <button
-                  className={`w-full border p-3 rounded ${
-                    selectedSlot?.start === slot.start
-                      ? "bg-black text-white"
-                      : "bg-white"
-                  }`}
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            {slots.map((slot) => {
+              const isSelected = selectedSlot?.start === slot.start;
+
+              return (
+                <Button
+                  key={slot.start}
+                  variant={isSelected ? "default" : "outline"}
+                  className="w-full text-sm py-4"
                   onClick={() => setSelectedSlot(slot)}
                 >
                   {new Date(slot.start).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
-                  {" — "}
+                  {" – "}
                   {new Date(slot.end).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
-                </button>
-              </li>
-            ))}
-          </ul>
+                </Button>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {selectedSlot && (
-        <>
-          <label className="block mt-6 mb-2 font-medium">Your Email</label>
-          <input
+        <div className="mt-6 text-center">
+          <Label className="block mt-6 mb-2 font-medium">Your Email</Label>
+          <Input
             type="email"
-            className="border px-3 py-2 rounded w-full mb-4"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
+            className="mb-4 w-full"
           />
 
-          <button
-            onClick={handleBooking}
-            className="px-4 py-2 bg-green-600 text-white rounded"
-          >
+          <Button onClick={handleBooking} className="bg-[#8B5A2B] w-full">
             Schedule Appointment
-          </button>
-        </>
+          </Button>
+        </div>
       )}
 
-      {success && <p className="text-green-600 mt-4">{success}</p>}
+      {success && <p className="text-green-600 mt-4 text-center">{success}</p>}
     </div>
   );
 }
