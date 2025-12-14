@@ -12,8 +12,18 @@ export async function getBarbers(): Promise<Barber[]> {
   return res.json();
 }
 
-export async function getBarbersServer(baseUrl: string): Promise<Barber[]> {
-  const res = await fetch(`${baseUrl}/api/barbers`, {
+export async function getBarbersServer(): Promise<Barber[]> {
+  const backendUrl = process.env.BACKEND_URL;
+  const apiKey = process.env.INTERNAL_API_KEY;
+
+  if (!backendUrl || !apiKey) {
+    throw new Error("Missing BACKEND_URL or INTERNAL_API_KEY");
+  }
+
+  const res = await fetch(`${backendUrl}/barbers`, {
+    headers: {
+      "X-API-Key": apiKey,
+    },
     cache: "no-store",
   });
 

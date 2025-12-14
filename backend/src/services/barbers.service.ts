@@ -53,6 +53,11 @@ export class BarbersService {
       throw new Error("Invalid date format. Expected YYYY-MM-DD");
     }
 
+    const today = tsToYMD(Date.now());
+    if (date < today) {
+      return [];
+    }
+
     const barbers = await BarbersService.fetchAll();
     const barber = barbers.find((barber) => barber.id === barberId);
     if (!barber) throw new Error("Barber not found");
@@ -75,7 +80,6 @@ export class BarbersService {
     const allSlots = generateTimeSlots(date, schedule.start, schedule.end);
 
     const now = Date.now();
-    const today = tsToYMD(now);
     const validSlots =
       date === today ? allSlots.filter((slot) => slot.end > now) : allSlots;
 
@@ -87,17 +91,14 @@ export class BarbersService {
           booking.barberId === barberId &&
           tsToYMD(Number(booking.start)) === date
       )
-      .map((bookedSlot) => ({
-        start: Number(bookedSlot.start),
-        end: Number(bookedSlot.end),
+      .map((b) => ({
+        start: Number(b.start),
+        end: Number(b.end),
       }));
 
     return validSlots.filter(
       (slot) =>
-        !bookedSlots.some(
-          (bookedSlot) =>
-            slot.start < bookedSlot.end && slot.end > bookedSlot.start
-        )
+        !bookedSlots.some((b) => slot.start < b.end && slot.end > b.start)
     );
   }
 }

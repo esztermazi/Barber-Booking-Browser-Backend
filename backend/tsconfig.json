@@ -12,7 +12,8 @@
     "skipLibCheck": true,
 
     "sourceMap": true,
-    "types": ["node"]
+    "isolatedModules": true,
+    "types": ["node", "jest"]
   },
   "include": ["src"]
 }
